@@ -3,25 +3,25 @@ import axios from 'axios';
 import * as XLSX from 'xlsx';
 
 const Dashboard = () => {
-    const [addresses, setAddresses] = useState([]);
+    const [submissions, setSubmissions] = useState([]);
 
     useEffect(() => {
-        const fetchAddresses = async () => {
+        const fetchSubmissions = async () => {
             const response = await axios.get("http://localhost:5000/admin/addresses");
-            setAddresses(response.data);
+            setSubmissions(response.data);
         };
 
-        fetchAddresses();
+        fetchSubmissions();
     }, []);
 
     const downloadExcel = () => {
-        const ws = XLSX.utils.json_to_sheet(addresses.map((address, index) => ({
+        const ws = XLSX.utils.json_to_sheet(submissions.map((submission, index) => ({
             No: index + 1,
-            'Email Address': address.Email,
-            'Solana Address': address.solanaAddresses
+            'Email Address': submission.email,
+            'Solana Address': submission.solanaAddress
         })));
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Addresses');
+        XLSX.utils.book_append_sheet(wb, ws, 'Submissions');
         XLSX.writeFile(wb, 'submissions.xlsx');
     };
 
@@ -43,21 +43,21 @@ const Dashboard = () => {
                         <thead>
                             <tr>
                                 <th className="py-2 px-4 border">No.</th>
-                                <th className="py-2 px-4 border  text-start">Email Address</th>
+                                <th className="py-2 px-4 border text-start">Email Address</th>
                                 <th className="py-2 px-4 border text-start">Solana Address</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {addresses.length === 0 ? (
+                            {submissions.length === 0 ? (
                                 <tr>
                                     <td colSpan="3" className="py-2 px-4 border text-center">No submissions found.</td>
                                 </tr>
                             ) : (
-                                addresses.map((submission, index) => (
+                                submissions.map((submission, index) => (
                                     <tr key={index} className="hover:bg-gray-100">
                                         <td className="py-2 px-4 border text-black text-center">{index + 1}</td>
-                                        <td className="py-2 px-4 border text-black text-start">{submission.Email}</td>
-                                        <td className="py-2 px-4 border text-start">{submission.solanaAddresses}</td>
+                                        <td className="py-2 px-4 border text-black  text-start">{submission.email}</td>
+                                        <td className="py-2 px-4 border text-start">{submission.solanaAddress}</td>
                                     </tr>
                                 ))
                             )}
