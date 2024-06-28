@@ -8,7 +8,7 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchSubmissions = async () => {
             const response = await axios.get("https://rwbsol-server.vercel.app/admin/addresses");
-            setSubmissions(response.data);
+            setSubmissions(response.data.reverse());
         };
 
         fetchSubmissions();
