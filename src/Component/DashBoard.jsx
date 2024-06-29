@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
-import dayjs from 'dayjs';  // Importing dayjs for date formatting and manipulation
 
 const Dashboard = () => {
     const [submissions, setSubmissions] = useState([]);
@@ -9,7 +8,7 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchSubmissions = async () => {
             try {
-                const response = await axios.get("https://rwbsol-server.vercel.app/admin/addresses");
+                const response = await axios.get("http://localhost:5000/admin/addresses");
                 const data = response.data;
 
                 if (Array.isArray(data)) {
@@ -37,19 +36,6 @@ const Dashboard = () => {
         XLSX.writeFile(wb, 'submissions.xlsx');
     };
 
-    const groupByDate = (data) => {
-        return data.reduce((acc, curr) => {
-            const date = dayjs(curr.createdAt).format('YYYY-MM-DD');
-            if (!acc[date]) {
-                acc[date] = [];
-            }
-            acc[date].push(curr);
-            return acc;
-        }, {});
-    };
-
-    const groupedSubmissions = groupByDate(submissions);
-
     return (
         <div className="min-h-screen p-8">
             <h1 className="mb-8 text-3xl font-bold text-center">Admin Dashboard</h1>
@@ -64,35 +50,32 @@ const Dashboard = () => {
                     </button>
                 </div>
                 <div className="overflow-x-auto">
-                    {Object.keys(groupedSubmissions).length === 0 ? (
-                        <p className="px-4 py-2 text-center border">No submissions found.</p>
-                    ) : (
-                        Object.keys(groupedSubmissions).map((date, index) => (
-                            <div key={index} className="mb-8">
-                                <h3 className="mb-4 text-xl font-semibold">{date}</h3>
-                                <table className="min-w-full bg-white border">
-                                    <thead>
-                                        <tr>
-                                            <th className="px-4 py-2 border">No.</th>
-                                            <th className="px-4 py-2 border text-start">Email Address</th>
-                                            <th className="px-4 py-2 border text-start">Solana Address</th>
-                                            <th className="px-4 py-2 border text-start">Time</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {groupedSubmissions[date].map((submission, index) => (
-                                            <tr key={index} className="hover:bg-gray-100">
-                                                <td className="px-4 py-2 text-center text-black border">{index + 1}</td>
-                                                <td className="px-4 py-2 text-black border text-start">{submission.email}</td>
-                                                <td className="px-4 py-2 border text-start">{submission.solanaAddress}</td>
-                                                <td className="px-4 py-2 border text-start">{dayjs(submission.createdAt).format('HH:mm:ss')}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        ))
-                    )}
+                    <table className="min-w-full bg-white border">
+                        <thead>
+                            <tr>
+                                <th className="px-4 py-2 border">No.</th>
+                                <th className="px-4 py-2 border text-start">Email Address</th>
+                                <th className="px-4 py-2 border text-start">Solana Address</th>
+                                <th className="px-4 py-2 border text-start">Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {submissions.length === 0 ? (
+                                <tr>
+                                    <td colSpan="4" className="px-4 py-2 text-center border">No submissions found.</td>
+                                </tr>
+                            ) : (
+                                submissions.map((submission, index) => (
+                                    <tr key={index} className="hover:bg-gray-100">
+                                        <td className="px-4 py-2 text-center text-black border">{index + 1}</td>
+                                        <td className="px-4 py-2 text-black border text-start">{submission.email}</td>
+                                        <td className="px-4 py-2 border text-start">{submission.solanaAddress}</td>
+                                        <td className="px-4 py-2 border text-start">{new Date(submission.createdAt).toLocaleString()}</td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
