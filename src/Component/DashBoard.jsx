@@ -8,7 +8,7 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchSubmissions = async () => {
             try {
-                const response = await axios.get("http://localhost:5000/admin/addresses");
+                const response = await axios.get("https://rwbsol-server.vercel.app/admin/addresses");
                 const data = response.data;
 
                 if (Array.isArray(data)) {
