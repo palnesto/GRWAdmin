@@ -1,21 +1,37 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
 
 const Dashboard = () => {
-    const [submissions, setSubmissions] = useState([]);
+    const [allSubmissions, setAllSubmissions] = useState([]);
+    const [filteredSubmissions, setFilteredSubmissions] = useState([]);
+    const [selectedBlog, setSelectedBlog] = useState("all"); // Default to show all blogs
 
     useEffect(() => {
         const fetchSubmissions = async () => {
             try {
-                const response = await axios.get("https://rwbsol-server.vercel.app/admin/addresses");
-                const data = response.data;
+                const endpoints = [
+                    { url: "https://rwbsol-server.vercel.app/admin/addresses", blogId: "blog1" },
+                    { url: "https://rwbsol-server.vercel.app/admin/addresses2", blogId: "blog2" },
+                    { url: "https://rwbsol-server.vercel.app/admin/addresses3", blogId: "blog3" },
+                    { url: "https://rwbsol-server.vercel.app/admin/addresses4", blogId: "blog4" },
+                    { url: "https://rwbsol-server.vercel.app/admin/addresses5", blogId: "blog5" },
+                    { url: "https://rwbsol-server.vercel.app/admin/addresses6", blogId: "blog6" }
+                ];
 
-                if (Array.isArray(data)) {
-                    setSubmissions(data);
-                } else {
-                    console.error("Data is not an array:", data);
-                }
+                const allData = await Promise.all(endpoints.map(endpoint =>
+                    axios.get(endpoint.url).then(response =>
+                        response.data.map(item => ({ ...item, blogId: endpoint.blogId }))
+                    )
+                ));
+
+                // Flatten the array of arrays and sort by date
+                const mergedData = allData.flat().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+                console.log("Fetched Data: ", mergedData); // Debugging line
+
+                setAllSubmissions(mergedData);
+                setFilteredSubmissions(mergedData); // Initially show all data
             } catch (error) {
                 console.error("Error fetching submissions:", error);
             }
@@ -24,8 +40,28 @@ const Dashboard = () => {
         fetchSubmissions();
     }, []);
 
+    useEffect(() => {
+        if (selectedBlog === "all") {
+            setFilteredSubmissions(allSubmissions);
+        } else {
+            const filteredData = allSubmissions.filter(submission => submission.blogId === selectedBlog);
+            setFilteredSubmissions(filteredData);
+        }
+    }, [selectedBlog, allSubmissions]);
+
+    const groupByDate = (data) => {
+        return data.reduce((acc, item) => {
+            const date = new Date(item.createdAt).toLocaleDateString();
+            if (!acc[date]) {
+                acc[date] = [];
+            }
+            acc[date].push(item);
+            return acc;
+        }, {});
+    };
+
     const downloadExcel = () => {
-        const ws = XLSX.utils.json_to_sheet(submissions.map((submission, index) => ({
+        const ws = XLSX.utils.json_to_sheet(filteredSubmissions.map((submission, index) => ({
             No: index + 1,
             'Email Address': submission.email,
             'Solana Address': submission.solanaAddress,
@@ -35,6 +71,8 @@ const Dashboard = () => {
         XLSX.utils.book_append_sheet(wb, ws, 'Submissions');
         XLSX.writeFile(wb, 'submissions.xlsx');
     };
+
+    const groupedSubmissions = groupByDate(filteredSubmissions);
 
     return (
         <div className="min-h-screen p-8">
@@ -49,6 +87,22 @@ const Dashboard = () => {
                         Download Excel
                     </button>
                 </div>
+                <div className="mb-4">
+                    <label className="block mb-2 text-lg font-semibold">Select Blog:</label>
+                    <select
+                        className="w-full p-2 border border-gray-300 rounded"
+                        value={selectedBlog}
+                        onChange={(e) => setSelectedBlog(e.target.value)}
+                    >
+                        <option value="all">All Blogs</option>
+                        <option value="blog1">Blog 1</option>
+                        <option value="blog2">Blog 2</option>
+                        <option value="blog3">Blog 3</option>
+                        <option value="blog4">Blog 4</option>
+                        <option value="blog5">Blog 5</option>
+                        <option value="blog6">Blog 6</option>
+                    </select>
+                </div>
                 <div className="overflow-x-auto">
                     <table className="min-w-full bg-white border">
                         <thead>
@@ -60,18 +114,25 @@ const Dashboard = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {submissions.length === 0 ? (
+                            {Object.keys(groupedSubmissions).length === 0 ? (
                                 <tr>
                                     <td colSpan="4" className="px-4 py-2 text-center border">No submissions found.</td>
                                 </tr>
                             ) : (
-                                submissions.map((submission, index) => (
-                                    <tr key={index} className="hover:bg-gray-100">
-                                        <td className="px-4 py-2 text-center text-black border">{index + 1}</td>
-                                        <td className="px-4 py-2 text-black border text-start">{submission.email}</td>
-                                        <td className="px-4 py-2 border text-start">{submission.solanaAddress}</td>
-                                        <td className="px-4 py-2 border text-start">{new Date(submission.createdAt).toLocaleString()}</td>
-                                    </tr>
+                                Object.keys(groupedSubmissions).map((date) => (
+                                    <React.Fragment key={date}>
+                                        <tr>
+                                            <td colSpan="4" className="px-4 py-2 font-bold text-center bg-gray-100 border">{date}</td>
+                                        </tr>
+                                        {groupedSubmissions[date].map((submission, subIndex) => (
+                                            <tr key={subIndex} className="hover:bg-gray-100">
+                                                <td className="px-4 py-2 text-center text-black border">{subIndex + 1}</td>
+                                                <td className="px-4 py-2 text-black border text-start">{submission.email}</td>
+                                                <td className="px-4 py-2 border text-start">{submission.solanaAddress}</td>
+                                                <td className="px-4 py-2 border text-start">{new Date(submission.createdAt).toLocaleString()}</td>
+                                            </tr>
+                                        ))}
+                                    </React.Fragment>
                                 ))
                             )}
                         </tbody>
